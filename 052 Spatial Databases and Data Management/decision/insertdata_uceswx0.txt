@@ -1,0 +1,521 @@
+--parameters
+insert into uceswx0.parameters
+(parameter_type,parameter_name,parameter_subname,
+	parameter_value,parameter_units)
+values
+('cost','metro_station','floor cost',200,'£ per sq m'),
+('cost','metro_station','wall cost',250,'£ per sq m'),
+('cost','metro_station','ceiling cost',100,'£ per sq m'),
+('height','metro_station','floor 0',5,'m'),
+('height','metro_station','floor -1',10,'m'),
+('height','metro_station','floor -2',10,'m'),
+('cost','card_entry_machines','contactless fix cost',100,'£'),
+('cost','card_entry_machines','mobile phone fix cost',200,'£'),
+('income','card_entry_machines_value','metro income',2,'£ per times'),
+('cost','card_entry_machines','contactless design life',20,'years'),
+('cost','card_entry_machines','mobile phone design life',30,'years'),
+('cost','card_entry_machines','mobile phone machine',200,'£'),
+('cost','card_entry_machines','increase width',10,'£ per cm'),
+('weight','station_condition','light_condition',1,'none'),
+('weight','station_condition','track_condition',4,'none'),
+('weight','station_condition','platform_condition',3,'none'),
+('weight','station_condition','display_screen_condition',3,'none'),
+('install','metro_station','display screen',3,'each station'),
+('install','metro_station','light',0.5,'per sq m'),
+('energy saving','metro_station','light',10,'kwh per day'),
+('energy saving','metro_station','screen',5,'kwh per day'),
+('energy cost','metro_station','energy cost',3,'£ per kwh'),
+('confort','metro_station','population',1.5,'£ per sq m');
+
+--USERs
+insert into uceswx0.users
+(user_name)
+VALUEs
+('user_1'),
+('user_2'),
+('user_3');
+
+--condition
+insert into uceswx0.asset_condition
+(condition_id,condition_description)
+VALUEs
+(1, 'As new or in good serviceable condition'),
+(2, 'Deteriorating, evidence of high usage, age, additional maintenance costs and inefficiency'),
+(3, 'Requires replacement within 5 years'),
+(4, 'In poor condition, overdue for replacement'),
+(5, 'Unable to determine condition (e.g. as item is hidden)'),
+(6, 'Item does not exist');
+
+
+--metro_line
+insert into uceswx0.metro_line
+(metro_line_name,frist_train,last_train,departure_interval,location)
+values
+('line 1',6.30,23.00,5,
+st_geomfromtext('POLYGON((694 485,775 443,1098 674,1607 760,1560 1076,2049 1081,2320 975, 2677 1183,3765 1181,3880 1056,4485 1067, 4478 1434,3827 1356,3826 1268,2553 1253,2550 1463,2137 1456,2052 1239,1586 1145,1102 1111,1083 738,694 485))',27700));
+
+
+--metro_station
+insert into uceswx0.metro_stations
+(metro_line_id,station_name,built_date,floors,location)
+VALUEs
+((select metro_line_id from uceswx0.metro_line where metro_line_name='line 1' ),
+	'station 1','2010-10-1',2,
+	st_extrude(st_geomfromtext('polygon((1160 758 5,1364 758 5,1364 915 5,1509 915 5,1509 1058 5,1160 1058 5,1160 758 5))',27700),0,0,-10)),
+((select metro_line_id from uceswx0.metro_line where metro_line_name='line 1' ),
+	'station 2','2011-1-15',3,
+	st_extrude(st_geomfromtext('polygon((2158 1150 5,2334 1032 5,2519 1159 5,2519 1414 5,2158 1414 5,2158 1150 5))',27700),0,0,-20)),
+((select metro_line_id from uceswx0.metro_line where metro_line_name='line 1' ),
+	'station 3','2010-3-23',2,
+	st_extrude(st_geomfromtext('polygon((3866 1128 5,4442 1128 5,4442 1375 5,3866 1333 5,3866 1128 5))',27700),0,0,-10));
+
+
+--card_entry_machines
+insert into uceswx0.card_entry_machines
+(station_id,machine_function,machine_make,machine_weight,install_date,location)
+values
+--station 1
+((select station_id from uceswx0.metro_stations where station_name='station 1'),
+	'contactless','ucl_1',90,'2011-2-7',
+	st_geomfromtext('point(1190 790)',27700)),
+((select station_id from uceswx0.metro_stations where station_name='station 1'),
+	'contactless','ucl_1',90,'2011-2-7',
+	st_geomfromtext('point(1477 1013)',27700)),
+((select station_id from uceswx0.metro_stations where station_name='station 1'),
+	'mobel phone','ucl_2',90,'2015-7-16',
+	st_geomfromtext('point(1267 790)',27700)),
+((select station_id from uceswx0.metro_stations where station_name='station 1'),
+	'mobel phone','ucl_2',90,'2015-7-16',
+	st_geomfromtext('point(1477 956)',27700)),
+--station 2
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	'contactless','ucl_1',90,'2011-8-21',
+	st_geomfromtext('point(2191 1260)',27700)),
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	'contactless','ucl_1',90,'2011-8-21',
+	st_geomfromtext('point(2487 1260)',27700)),
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	'mobel phone','ucl_1',90,'2015-7-16',
+	st_geomfromtext('point(2191 1357)',27700)),
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	'mobel phone','ucl_1',90,'2015-7-16',
+	st_geomfromtext('point(2487 1357)',27700)),
+--station 3
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	'contactless','ucl_2',90,'2011-1-7',
+	st_geomfromtext('point(3913 1185)',27700)),
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	'contactless','ucl_2',90,'2011-1-7',
+	st_geomfromtext('point(4409 1185)',27700)),
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	'mobel phone','ucl_3',120,'2015-7-16',
+	st_geomfromtext('point(3913 1285)',27700)),
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	'mobel phone','ucl_3',120,'2015-7-16',
+	st_geomfromtext('point(4409 1285)',27700));
+
+
+--station_condition
+insert into uceswx0.station_condition
+(station_id,user_id,light_condition,track_condition,platform_condition,
+	display_screen_condition,report_date)
+values
+--station1
+((select station_id from uceswx0.metro_stations where station_name='station 1'),
+	(select user_id from uceswx0.users where user_name ='user_1'),
+	1,1,1,2,'2013-10-7'),
+((select station_id from uceswx0.metro_stations where station_name='station 1'),
+	(select user_id from uceswx0.users where user_name ='user_2'),
+	3,1,1,2,'2015-7-2'),
+((select station_id from uceswx0.metro_stations where station_name='station 1'),
+	(select user_id from uceswx0.users where user_name ='user_2'),
+	1,2,2,2,'2017-4-2'),
+((select station_id from uceswx0.metro_stations where station_name='station 1'),
+	(select user_id from uceswx0.users where user_name ='user_3'),
+	3,2,3,4,'2019-8-18'),
+--station2
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	(select user_id from uceswx0.users where user_name ='user_1'),
+	1,1,1,1,'2013-3-18'),
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	(select user_id from uceswx0.users where user_name ='user_2'),
+	2,1,2,3,'2015-4-28'),
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	(select user_id from uceswx0.users where user_name ='user_3'),
+	3,2,2,1,'2017-5-23'),
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	(select user_id from uceswx0.users where user_name ='user_2'),
+	2,3,3,2,'2019-4-2'),
+--station3
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	(select user_id from uceswx0.users where user_name ='user_2'),
+	2,1,1,2,'2013-2-5'),
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	(select user_id from uceswx0.users where user_name ='user_2'),
+	2,1,1,3,'2015-7-21'),
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	(select user_id from uceswx0.users where user_name ='user_3'),
+	3,2,2,1,'2017-11-3'),
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	(select user_id from uceswx0.users where user_name ='user_1'),
+	1,2,3,3,'2019-4-12');
+
+
+--station_fix
+insert into uceswx0.station_fix
+(station_id,user_id,fix_place,station_fix_date)
+values
+--station1
+((select station_id from uceswx0.metro_stations where station_name='station 1'),
+	(select user_id from uceswx0.users where user_name ='user_1'),
+	'light','2016-4-2'),
+((select station_id from uceswx0.metro_stations where station_name='station 1'),
+	(select user_id from uceswx0.users where user_name ='user_1'),
+	'track','2015-6-13'),
+((select station_id from uceswx0.metro_stations where station_name='station 1'),
+	(select user_id from uceswx0.users where user_name ='user_2'),
+	'light','2015-3-7'),
+((select station_id from uceswx0.metro_stations where station_name='station 1'),
+	(select user_id from uceswx0.users where user_name ='user_1'),
+	'platform','2018-3-4'),
+((select station_id from uceswx0.metro_stations where station_name='station 1'),
+	(select user_id from uceswx0.users where user_name ='user_3'),
+	'display screen','2017-4-17'),
+--station2
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	(select user_id from uceswx0.users where user_name ='user_1'),
+	'light','2018-5-4'),
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	(select user_id from uceswx0.users where user_name ='user_1'),
+	'display screen','2017-3-14'),
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	(select user_id from uceswx0.users where user_name ='user_3'),
+	'light','2014-4-12'),
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	(select user_id from uceswx0.users where user_name ='user_2'),
+	'display screen','2018-5-1'),
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	(select user_id from uceswx0.users where user_name ='user_2'),
+	'track','2013-11-5'),
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	(select user_id from uceswx0.users where user_name ='user_2'),
+	'light','2017-2-11'),
+((select station_id from uceswx0.metro_stations where station_name='station 2'),
+	(select user_id from uceswx0.users where user_name ='user_1'),
+	'platform','2020-2-4'),
+--station3
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	(select user_id from uceswx0.users where user_name ='user_3'),
+	'display screen','2017-5-2'),
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	(select user_id from uceswx0.users where user_name ='user_3'),
+	'light','2013-3-17'),
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	(select user_id from uceswx0.users where user_name ='user_1'),
+	'light','2017-3-2'),
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	(select user_id from uceswx0.users where user_name ='user_1'),
+	'track','2014-1-4'),
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	(select user_id from uceswx0.users where user_name ='user_2'),
+	'track','2019-9-16'),
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	(select user_id from uceswx0.users where user_name ='user_2'),
+	'platform','2020-1-28'),
+((select station_id from uceswx0.metro_stations where station_name='station 3'),
+	(select user_id from uceswx0.users where user_name ='user_3'),
+	'display screen','2016-4-2');
+
+
+--card_entry_machines_value
+insert into uceswx0.card_entry_machines_value
+(machine_id,record_date,record_time,enter_outer)
+values
+--machine1
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1190 790)',27700)))),
+	'2021-12-3',6,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1190 790)',27700)))),
+	'2021-12-3',6.3,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1190 790)',27700)))),
+	'2021-12-3',22,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1190 790)',27700)))),
+	'2021-12-3',22.3,'enter'),
+--2
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 1013)',27700)))),
+	'2021-12-3',6,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 1013)',27700)))),
+	'2021-12-3',6.2,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 1013)',27700)))),
+	'2021-12-3',22,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 1013)',27700)))),
+	'2021-12-3',22.5,'outer'),
+--3
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1267 790)',27700)))),
+	'2021-12-3',6,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1267 790)',27700)))),
+	'2021-12-3',6.2,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1267 790)',27700)))),
+	'2021-12-3',12.3,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1267 790)',27700)))),
+	'2021-12-3',14,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1267 790)',27700)))),
+	'2021-12-3',22,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1267 790)',27700)))),
+	'2021-12-3',22.5,'enter'),
+--4
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 956)',27700)))),
+	'2021-12-3',6,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 956)',27700)))),
+	'2021-12-3',6.2,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 956)',27700)))),
+	'2021-12-3',22,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 956)',27700)))),
+	'2021-12-3',22.5,'outer'),
+--5
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1260)',27700)))),
+	'2021-12-3',6,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1260)',27700)))),
+	'2021-12-3',6.2,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1260)',27700)))),
+	'2021-12-3',22,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1260)',27700)))),
+	'2021-12-3',22.5,'enter'),
+--6
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1260)',27700)))),
+	'2021-12-3',6,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1260)',27700)))),
+	'2021-12-3',6.2,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1260)',27700)))),
+	'2021-12-3',22,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1260)',27700)))),
+	'2021-12-3',22.5,'outer'),
+--7
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1357)',27700)))),
+	'2021-12-3',6,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1357)',27700)))),
+	'2021-12-3',6.2,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1357)',27700)))),
+	'2021-12-3',12.5,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1357)',27700)))),
+	'2021-12-3',14.5,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1357)',27700)))),
+	'2021-12-3',22,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1357)',27700)))),
+	'2021-12-3',22.5,'enter'),
+--8
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1357)',27700)))),
+	'2021-12-3',6,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1357)',27700)))),
+	'2021-12-3',6.2,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1357)',27700)))),
+	'2021-12-3',22,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1357)',27700)))),
+	'2021-12-3',22.5,'outer'),
+--9
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1185)',27700)))),
+	'2021-12-3',6,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1185)',27700)))),
+	'2021-12-3',6.2,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1185)',27700)))),
+	'2021-12-3',22,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1185)',27700)))),
+	'2021-12-3',22.5,'enter'),
+--10
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1185)',27700)))),
+	'2021-12-3',6,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1185)',27700)))),
+	'2021-12-3',6.2,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1185)',27700)))),
+	'2021-12-3',22,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1185)',27700)))),
+	'2021-12-3',22.5,'outer'),
+--11
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1285)',27700)))),
+	'2021-12-3',6,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1285)',27700)))),
+	'2021-12-3',6.2,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1285)',27700)))),
+	'2021-12-3',12,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1285)',27700)))),
+	'2021-12-3',14,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1285)',27700)))),
+	'2021-12-3',22,'enter'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1285)',27700)))),
+	'2021-12-3',22.5,'enter'),
+--12
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1285)',27700)))),
+	'2021-12-3',6,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1285)',27700)))),
+	'2021-12-3',6.2,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1285)',27700)))),
+	'2021-12-3',22,'outer'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1285)',27700)))),
+	'2021-12-3',22.5,'outer');
+
+
+--card_machine_fix
+insert into uceswx0.card_machine_fix
+(machine_id,user_id,machine_fix_date)
+values
+--1
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1190 790)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2016-4-2'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1190 790)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2015-6-13'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1190 790)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_2'),
+	'2018-3-4'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1190 790)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_3'),
+	'2017-4-17'),
+--2
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 1013)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2016-4-2'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 1013)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2015-6-13'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 1013)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_2'),
+	'2018-3-4'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 1013)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_3'),
+	'2017-4-17'),
+--3
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1267 790)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2016-4-2'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1267 790)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2015-6-13'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1267 790)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_2'),
+	'2018-3-4'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1267 790)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_3'),
+	'2017-4-17'),
+--4
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 956)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2016-4-2'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 956)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2015-6-13'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 956)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_2'),
+	'2018-3-4'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(1477 956)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_3'),
+	'2017-4-17'),
+--5
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1260)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2016-4-2'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1260)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2015-6-13'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1260)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_2'),
+	'2018-3-4'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1260)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_3'),
+	'2017-4-17'),
+--6
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1260)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2016-4-2'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1260)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2015-6-13'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1260)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_2'),
+	'2018-3-4'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1260)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_3'),
+	'2017-4-17'),
+--7
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1357)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2016-4-2'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1357)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2015-6-13'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1357)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_2'),
+	'2018-3-4'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2191 1357)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_3'),
+	'2017-4-17'),
+--8
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1357)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2016-4-2'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1357)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2015-6-13'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1357)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_2'),
+	'2018-3-4'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(2487 1357)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_3'),
+	'2017-4-17'),
+--9
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1185)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2016-4-2'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1185)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2015-6-13'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1185)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_2'),
+	'2018-3-4'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1185)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_3'),
+	'2017-4-17'),
+--10
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1185)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2016-4-2'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1185)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2015-6-13'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1185)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_2'),
+	'2018-3-4'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1185)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_3'),
+	'2017-4-17'),
+--11
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1285)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2016-4-2'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1285)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2015-6-13'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1285)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_2'),
+	'2018-3-4'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(3913 1285)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_3'),
+	'2017-4-17'),
+--12
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1285)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2016-4-2'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1285)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_1'),
+	'2015-6-13'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1285)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_2'),
+	'2018-3-4'),
+((select machine_id from uceswx0.card_entry_machines b where st_intersects(b.location,(st_geomfromtext('Point(4409 1285)',27700)))),
+	(select user_id from uceswx0.users where user_name='user_3'),
+	'2017-4-17');
+
+
+
+
+
+

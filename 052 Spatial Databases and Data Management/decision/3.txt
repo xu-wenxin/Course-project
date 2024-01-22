@@ -1,0 +1,16 @@
+--3.考虑到地铁线运行的日常维修，我们需要统计每个地铁线上有多少站处于良好运行状态<=2，给状态不好的站台装修花费多少？装修时考虑更换卡机还是保留至使用年限更换的花费呢
+
+with 
+line_station_condition as
+	(select b.metro_line_id,b.metro_line_name,a.station_id,
+		a.station_name,a.built_date,a.station_condition
+	 from uceswx0.platform_condition a left join uceswx0.metro_line b
+	 on a.metro_line_id=b.metro_line_id
+	 where a.station_condition>2.5)
+ 
+ select c.*,round(d.station_refitting_cost) as station_refitting_cost,
+	d.refitting_machine_reserve_cost,d.refitting_machine_update_cost
+ from line_station_condition c 
+ left join uceswx0.refitting_machine_cost d 
+ on c.station_id=d.station_id;
+

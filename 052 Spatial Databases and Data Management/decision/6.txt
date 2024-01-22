@@ -1,0 +1,44 @@
+--考虑到未来卡机合作厂家的选取，需要计算每种厂家的机器每个机器每年维修花费多少，每个厂家每个机器每年维修多少次。
+with
+--剩余使用年限
+contactless_fix_cost as 
+	(select parameter_value from uceswx0.latest_parameters where 
+	parameter_type = 'cost' and parameter_name='card_entry_machines'
+	and parameter_subname='contactless fix cost'),
+mob_fix_cost as 
+	(select parameter_value from uceswx0.latest_parameters where 
+	parameter_type = 'cost' and parameter_name='card_entry_machines'
+	and parameter_subname='mobile phone fix cost'),
+fix_record_count as 
+	(select machine_id, count(*) as fix_count from uceswx0.card_machine_fix
+	group by machine_id order by machine_id),
+--Number of repairs per year
+annual_fix_record_count as
+	(select c.*,
+	d.fix_count/ceiling(date_part('day',now()::TIMESTAMP-c.install_date::TIMESTAMP)/365)
+	as annual_fix_record  from uceswx0.card_entry_machines c
+	left join fix_record_count d on c.machine_id=d.machine_id),
+--Because maintenance costs vary, a breakdown of annual maintenance costs
+contactless_annual_fix_cost as
+	(select e.machine_id, e.machine_make,e.annual_fix_record,
+		(e.annual_fix_record*f.parameter_value) as annual_fix_cost
+	from annual_fix_record_count e,contactless_fix_cost f
+	where e.machine_function='contactless'),
+mob_annual_fix_cost as
+	(select g.machine_id,g.machine_make,g.annual_fix_record,
+		(g.annual_fix_record*h.parameter_value) as annual_fix_cost
+	from annual_fix_record_count g,contactless_fix_cost h
+	where g.machine_function='mobel phone'),
+--Consolidated annual maintenance costs
+union_annual_fix_cost as 
+	(select * from contactless_annual_fix_cost 
+	union all  
+	select * from mob_annual_fix_cost)
+
+--Link to the metro line
+select machine_make,
+	sum(annual_fix_record) as annual_fix_record_per_machine_year,
+	(sum(annual_fix_cost)/count(*))as annual_fix_cost_per_machine_year
+from union_annual_fix_cost
+group by machine_make
+order by annual_fix_cost_per_machine_year;

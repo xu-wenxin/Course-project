@@ -1,0 +1,195 @@
+-- =============================================
+--1.  Taking into account the entry of items such as wheelchairs, prams and luggage into the station, we need at least one entry card machine and one exit card machine at each metro station to be accessible (width=120cm).
+--What is the minimum width and cost of upgrading each station based on the current situation? What if we increase all the stations to 120cm?
+
+with 
+--Get the metro stations that meet the requirements (width >120 card machines >2)
+station_machien_count as
+	(select count(*)as machine_120_count,station_id 
+	from uceswx0.card_entry_machines 
+	where machine_weight>=120
+	group by station_id),
+station_machine as 
+	(select a.*,b.machine_120_count from uceswx0.metro_stations a
+	left join station_machien_count b on a.station_id=b.station_id),
+--Need to upgrade the width and cost of the metro station
+station_with2 as 
+	(select * from station_machine where machine_120_count>=2),
+station_below2 as 
+	(select * from uceswx0.metro_stations where station_id in 
+		(select station_id from uceswx0.metro_stations
+		except select station_id from station_with2)),
+station_width as 
+	(select station_id,((120-90)*2)as width_need from station_below2),
+width_cost as 
+	(select parameter_value from uceswx0.latest_parameters
+	where parameter_name='card_entry_machines' and 
+	parameter_subname='increase width'),
+station_width_join as 
+	(select c.*,d.width_need
+	from uceswx0.metro_stations c left join station_width d on 
+	c.station_id=d.station_id),
+station_2 as 
+	(select e.*,(e.width_need*f.parameter_value)as width_cost 
+	from station_width_join e,width_cost f
+	order by station_id),
+--Width and cost of all upgrades
+station_count as 
+	(select count(*)as number_upgrade ,station_id from uceswx0.card_entry_machines where machine_weight<120
+	group by station_id order by station_id),
+station_count_join as 
+	(select g.*, h.number_upgrade, 
+	(h.number_upgrade*(120-90))as upgrade_all_width
+	from uceswx0.metro_stations g left join station_count h on g.station_id=h.station_id),
+station_count_cost as
+	(select i.*, (i.upgrade_all_width*j.parameter_value)as upgrade_all_cost
+	from station_count_join i, width_cost j)
+	
+--join together
+select k.station_id,k.station_name,k.width_need as upgrade_2_width,
+k.width_cost as upgrade_2_cost,l.number_upgrade as number_upgrade_all
+,l.upgrade_all_width,l.upgrade_all_cost
+from station_2  k left join station_count_cost l
+on k.station_id=l.station_id;
+
+
+
+-- =============================================
+--2. Considering the need for energy saving and emission reduction, it is expected that all the display screens and light bulbs in metro line1 will be replaced with led ones, how much energy and how much money will be saved in a year by doing so?
+
+select * from uceswx0.line_energy;
+
+
+
+-- =============================================
+--3. Considering the selection of the future card machine partner manufacturers, the maintenance and costs of the existing machines need to be obtained.
+--The number of repairs and costs per machine per year for each manufacturer needs to be calculated.
+
+with
+---- Number of repairs
+contactless_fix_cost as 
+	(select parameter_value from uceswx0.latest_parameters where 
+	parameter_type = 'cost' and parameter_name='card_entry_machines'
+	and parameter_subname='contactless fix cost'),
+mob_fix_cost as 
+	(select parameter_value from uceswx0.latest_parameters where 
+	parameter_type = 'cost' and parameter_name='card_entry_machines'
+	and parameter_subname='mobile phone fix cost'),
+fix_record_count as 
+	(select machine_id, count(*) as fix_count from uceswx0.card_machine_fix
+	group by machine_id order by machine_id),
+--Number of repairs per year
+annual_fix_record_count as
+	(select c.*,
+	d.fix_count/ceiling(date_part('day',now()::TIMESTAMP-c.install_date::TIMESTAMP)/365)
+	as annual_fix_record  from uceswx0.card_entry_machines c
+	left join fix_record_count d on c.machine_id=d.machine_id),
+--Because maintenance costs vary, a breakdown of annual maintenance costs
+contactless_annual_fix_cost as
+	(select e.machine_id, e.machine_make,e.annual_fix_record,
+		(e.annual_fix_record*f.parameter_value) as annual_fix_cost
+	from annual_fix_record_count e,contactless_fix_cost f
+	where e.machine_function='contactless'),
+mob_annual_fix_cost as
+	(select g.machine_id,g.machine_make,g.annual_fix_record,
+		(g.annual_fix_record*h.parameter_value) as annual_fix_cost
+	from annual_fix_record_count g,contactless_fix_cost h
+	where g.machine_function='mobel phone'),
+--Consolidated annual maintenance costs
+union_annual_fix_cost as 
+	(select * from contactless_annual_fix_cost 
+	union all  
+	select * from mob_annual_fix_cost)
+
+--Link to the metro line
+select machine_make,
+	sum(annual_fix_record) as annual_fix_record_per_machine_year,
+	(sum(annual_fix_cost)/count(*))as annual_fix_cost_per_machine_year
+from union_annual_fix_cost
+group by machine_make
+order by annual_fix_cost_per_machine_year;
+
+
+
+-- =============================================
+--4. We want to know if people feel crowded at the comfort level of the platform and if the platform needs to be expanded.
+--Consider the number of people entering each station during the departure interval of two trains and compare the number of people comfortable on the platform through the appropriate number of people per square metre to the query.
+--Due to input data limitations, it is not possible to calculate through the available moments, using 2021-12-3 22:00 as the time of departure of the first train for the calculation.
+
+with
+--Entry machine
+machine_value as 
+	(select* from uceswx0.card_entry_machines_value 
+	where record_date='2021-12-3' and enter_outer='enter'),
+machine_join as 
+	(select b.*, a.location,a.station_id from uceswx0.card_entry_machines a 
+	inner join machine_value b on a.machine_id=b.machine_id),
+line_machine_value as 
+	(select c.departure_interval,d.*
+	from machine_join d left join uceswx0.metro_line c
+	on st_intersects(c.location,d.location)),
+--Calculate the time period required
+machine_value_5min as 
+	(select *
+	from line_machine_value  where 
+	record_time between 22 and (22+(departure_interval/60))),
+--Number of people available and suitable population
+station_count as 
+	(select count(*) as population ,station_id from machine_value_5min
+	group by station_id),
+station_join_population as 
+	(select e.*,(st_area(e.location)*(select parameter_value 
+		from uceswx0.latest_parameters where parameter_type='confort'
+		and parameter_subname='population')) 
+			as station_comfortable_population,
+	f.population from uceswx0.metro_stations e 
+	left join station_count f on e.station_id=f.station_id)
+	
+select station_id,station_name,population as people_in_station,
+	station_comfortable_population,
+	population<station_comfortable_population as comfortable
+	from station_join_population;
+
+
+
+-- =============================================
+--5 As the system assumes that there will still be contactless card machines at Metro stations, it is expected that these will be upgraded to mobile phone capable machines.
+--Considering the age of the different types of card machines, the cost of maintenance and the cost of crediting them, it was calculated whether it would be cost effective to upgrade now or to wait until the card machines are retired.
+
+select station_id,machine_id,machine_function,install_date, remain_life,
+	continue_use_enter_income_remain_year,
+	update_enter_income_remain_year,
+	continue_use_fix_cost_remain_year,update_fix_cost_remain_year,
+	profit_reserve,profit_update,
+	profit_reserve<profit_update as update_machine
+from uceswx0.change_card_machine
+order by machine_id;
+
+
+
+-- =============================================
+--6 As it has been 10 years since line1 was built, many of the renovations have deteriorated and we are now considering renovating the underground station in line1.
+--How much does it cost to renovate the station? How much would it cost to renovate the station, taking into account the replacement of the gates (now or at the end of their useful life)?
+
+select * from uceswx0.refitting_machine_cost;
+
+
+
+-- =============================================
+--7 Considering the daily maintenance of the metro lines in operation, we need to count how many stations on each metro line are in good operating condition >2.5 and how much it costs to refurbish stations that are not in good condition? What is the cost of renovating to consider replacing card machines or keeping them until their useful life to replace them?
+
+with 
+line_station_condition as
+	(select b.metro_line_id,b.metro_line_name,a.station_id,
+		a.station_name,a.built_date,a.station_condition
+	 from uceswx0.platform_condition a left join uceswx0.metro_line b
+	 on a.metro_line_id=b.metro_line_id
+	 where a.station_condition>2.5)
+ 
+ select c.*,round(d.station_refitting_cost) as station_refitting_cost,
+	d.refitting_machine_reserve_cost,d.refitting_machine_update_cost
+ from line_station_condition c 
+ left join uceswx0.refitting_machine_cost d 
+ on c.station_id=d.station_id;
+
+

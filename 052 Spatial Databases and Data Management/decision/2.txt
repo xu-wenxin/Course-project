@@ -1,0 +1,16 @@
+--2.由于系统假定地铁站仍旧存在只能使用地铁卡的卡机，预计对这些卡机升级为contactless。考虑卡机使用年限、维修费和入账的限制，计算现在升级还是等卡机报废后升级划算。
+--考虑使用年限、两种卡机每年维修次数和维修花费、两种卡机收入
+
+select station_id,machine_id,machine_function,install_date, remain_life,
+	continue_use_enter_income_remain_year,
+	update_enter_income_remain_year,
+	continue_use_fix_cost_remain_year,update_fix_cost_remain_year,
+	profit_reserve,profit_update,
+	profit_reserve<profit_update as update_machine
+from uceswx0.change_card_machine
+order by machine_id;
+
+
+
+
+

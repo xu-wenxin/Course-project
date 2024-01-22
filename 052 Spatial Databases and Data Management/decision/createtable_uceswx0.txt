@@ -1,0 +1,116 @@
+--create schema
+drop schema if exists uceswx0 cascade;
+create schema uceswx0;
+
+--===================================================
+--create table
+--create table metro_line
+drop table if exists uceswx0.metro_line;
+create table uceswx0.metro_line(metro_line_id serial,
+	metro_line_name character varying (100) not null,
+	frist_train NUMERIC(3,2) not null,
+	last_train NUMERIC(4,2) not null,
+	departure_interval numeric(2) not null);
+	
+alter table uceswx0.metro_line drop column if exists location;
+select AddGeometryColumn
+	('uceswx0','metro_line','location',27700, 'geometry',2);
+
+
+--create table metro_station
+drop table if exists uceswx0.metro_stations;
+create table uceswx0.metro_stations(station_id serial,
+	metro_line_id integer not null,
+	station_name character varying(50) not null,
+	built_date date not null,
+	floors integer not null);
+	
+alter table uceswx0.metro_stations drop column if exists location;
+select AddGeometryColumn
+	('uceswx0','metro_stations','location',27700, 'geometry',3);
+
+
+--create table card_entry_machines
+drop table if exists uceswx0.card_entry_machines;
+create table uceswx0.card_entry_machines
+	(machine_id serial,
+	station_id INTEGER not null,
+	machine_function character varying(50) not null,
+	machine_make character varying(200) not null,
+	machine_weight numeric(8) not null,
+	install_date date not null);
+	
+alter table uceswx0.card_entry_machines drop column if exists location;
+select AddGeometryColumn
+	('uceswx0','card_entry_machines','location',27700, 'geometry',2);
+
+
+--create table station_condition
+drop table if exists uceswx0.station_condition;
+create table uceswx0.station_condition(
+	station_condition_id serial,
+	station_id integer not null,
+	user_id integer not null,
+	light_condition INTEGER not null,
+	track_condition INTEGER not null,
+	platform_condition INTEGER not null,
+	display_screen_condition INTEGER not null,
+	report_date date not null);
+	
+	
+--create table station_fix
+drop table if exists uceswx0.station_fix;
+create table uceswx0.station_fix(
+	station_fix_id serial,
+	station_id integer not null,
+	user_id INTEGER not null,
+	fix_place character varying(50) not null,
+	station_fix_date date not null);
+
+
+--create table card_entry_machines_value
+drop table if exists uceswx0.card_entry_machines_value;
+create table uceswx0.card_entry_machines_value(
+	machine_value_id serial,
+	machine_id integer not null,
+	record_date date not null,
+	record_time NUMERIC(8) not null,
+	enter_outer character varying(50) not null);
+	
+
+--create table card_machine_fix
+drop table if exists uceswx0.card_machine_fix;
+create table uceswx0.card_machine_fix(
+	machine_fix_id serial,
+	machine_id integer not null,
+	user_id integer not null,
+	machine_fix_date date not null);
+
+
+--create table users
+drop table if exists uceswx0.users;
+create table uceswx0.users(
+	user_id serial,
+	user_name character varying(50) not null);
+	
+
+--create table condition
+drop table if exists uceswx0.asset_condition;
+create table uceswx0.asset_condition(
+	condition_id integer not null,
+	condition_description character varying(100) not null);
+	
+
+--create table parameters
+drop table if exists uceswx0.parameters;
+create table uceswx0.parameters(
+	parameter_id serial,
+	parameter_type CHARACTER varying(50) not null,
+	parameter_name CHARACTER varying(100)not null,
+	parameter_subname CHARACTER varying(100)not null,
+	parameter_value numeric(10) not null,
+	parameter_units CHARACTER varying(50)not null,
+	date_created date default CURRENT_DATE);
+
+
+

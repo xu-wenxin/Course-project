@@ -1,0 +1,317 @@
+-- =============================================
+--latest parameters
+drop view if exists uceswx0.latest_parameters;
+create view uceswx0.latest_parameters as(
+with 
+latest_parameters as
+(select parameter_type, parameter_name, parameter_subname, max(date_created) as date_created
+from uceswx0.parameters
+group by parameter_type, parameter_name, parameter_subname)
+
+select a.parameter_id, a.parameter_value, b.* from uceswx0.parameters a inner join 
+latest_parameters b
+on a.parameter_type = b.parameter_type
+and a.parameter_name = b.parameter_name
+and a.parameter_subname = b.parameter_subname 
+and a.date_created = b.date_created
+);
+
+
+
+-- =============================================
+--5 As the system assumes that there will still be contactless card machines at Metro stations, it is expected that these will be upgraded to mobile phone capable machines.
+--Considering the age of the different types of card machines, the cost of maintenance and the cost of crediting them, it was calculated whether it would be cost effective to upgrade now or to wait until the card machines are retired.
+
+drop view if exists uceswx0.change_card_machine;
+create view uceswx0.change_card_machine as (
+with
+--Remaining useful life
+ contactless_design_life as
+	(select parameter_value from uceswx0.latest_parameters where 
+	parameter_type = 'cost' and parameter_name='card_entry_machines'
+	and parameter_subname='contactless design life'),
+remaining_service_life as 
+	(select a.*,ceiling(b.parameter_value-
+	(date_part('day',now()::TIMESTAMP-a.install_date::TIMESTAMP)/365))
+	as remain_life from uceswx0.card_entry_machines a, contactless_design_life b),
+--Number of repairs and cost per visit
+contactless_fix_cost as 
+	(select parameter_value from uceswx0.latest_parameters where 
+	parameter_type = 'cost' and parameter_name='card_entry_machines'
+	and parameter_subname='contactless fix cost'),
+mob_fix_cost as 
+	(select parameter_value from uceswx0.latest_parameters where 
+	parameter_type = 'cost' and parameter_name='card_entry_machines'
+	and parameter_subname='mobile phone fix cost'),
+fix_record_count as 
+	(select machine_id, count(*) as fix_count from uceswx0.card_machine_fix
+	group by machine_id order by machine_id),
+--Number of repairs per year
+annual_fix_record_count as
+	(select c.*,
+	d.fix_count/ceiling(date_part('day',now()::TIMESTAMP-c.install_date::TIMESTAMP)/365)
+	as annual_fix_record  from remaining_service_life c
+	left join fix_record_count d on c.machine_id=d.machine_id),
+--mobel Average number of machine repairs
+mob_avg_fix_count as 
+	(select avg(annual_fix_record) as mobel_annul_fix_times 
+	from annual_fix_record_count where machine_function='mobel phone'),
+--contactless Remaining annual maintenance costs for continued use and renewals
+fix_payment_in_remain_life as 
+	(select e.*, 
+	e.annual_fix_record*f.parameter_value*e.remain_life 
+		as continue_use_fix_cost_remain_year,
+	h.mobel_annul_fix_times *g.parameter_value*e.remain_life
+		as update_fix_cost_remain_year
+	from annual_fix_record_count e, contactless_fix_cost f,
+		mob_fix_cost g, mob_avg_fix_count h
+	where e.machine_function='contactless'),
+	
+--Card machine annual entry, annual revenue
+--Income per visit cost
+metro_cost as 
+	(select parameter_value from uceswx0.latest_parameters where 
+	parameter_type = 'income' and parameter_name='card_entry_machines_value'
+	and parameter_subname='metro income'),
+--Number of entries
+machine_enter_times as 
+	(select machine_id,count(*) as enter_times from uceswx0.card_entry_machines_value 
+	group by machine_id),
+annual_enter as 
+	(select i.machine_id,i.machine_function,
+	j.enter_times/ceiling(date_part('day',now()::TIMESTAMP-i.install_date::TIMESTAMP)/365)
+	as annual_enter_times  from uceswx0.card_entry_machines i
+	left join machine_enter_times j on i.machine_id=j.machine_id),
+mob_avg_enter_times as 
+	(select avg(annual_enter_times) as mobel_annul_enter_times 
+	from annual_enter where machine_function='mobel phone'),
+--Enter charge+left join
+--times*value*remian_life
+machine_enter_join as 
+	(select k.*,l.annual_enter_times 
+	from fix_payment_in_remain_life k left join annual_enter l
+	on k.machine_id=l.machine_id),
+machine_enter_cost as 
+	(select m.*,
+	m.remain_life*n.parameter_value*m. annual_enter_times
+		as continue_use_enter_income_remain_year,
+	m.remain_life*n.parameter_value*o.mobel_annul_enter_times 
+		as update_enter_income_remain_year
+	from machine_enter_join m, metro_cost n, mob_avg_enter_times o),
+
+--profit_reserve profit_update
+update_cost as 
+	(select parameter_value from uceswx0.latest_parameters where 
+	parameter_type = 'cost' and parameter_name='card_entry_machines'
+	and parameter_subname='mobile phone machine')
+
+select p.*,
+round(p.continue_use_enter_income_remain_year
+	-p.continue_use_fix_cost_remain_year-q.parameter_value)
+	as profit_reserve,
+round(p.update_enter_income_remain_year-p.update_fix_cost_remain_year
+	-q.parameter_value)
+	as profit_update
+from machine_enter_cost p, update_cost q
+);
+
+
+
+
+-- =============================================
+--6 As it has been 10 years since line1 was built, many of the renovations have deteriorated and we are now considering renovating the underground station in line1.
+--How much does it cost to renovate the station? How much would it cost to renovate the station, taking into account the replacement of the gates (now or at the end of their useful life)?
+
+drop view if exists uceswx0.refitting_cost;
+create view uceswx0.refitting_cost as(
+with
+--Links to metro stations and lines
+line1_id as
+	(select metro_line_id,metro_line_name from uceswx0.metro_line 
+	where metro_line_name='line 1'),
+--Cost of different parts
+station_line as
+	(select a.metro_line_name,b.* from uceswx0.metro_stations b left join  line1_id a
+	on a.metro_line_id=b.metro_line_id),
+floor_cost as 
+	(select parameter_value from uceswx0.latest_parameters 
+	where parameter_type = 'cost' and parameter_name='metro_station'and
+	parameter_subname='floor cost'),
+wall_cost as 
+	(select parameter_value from uceswx0.latest_parameters 
+	where parameter_type = 'cost' and parameter_name='metro_station'and
+	parameter_subname='wall cost'),
+ceiling_cost as 
+	(select parameter_value from uceswx0.latest_parameters 
+	where parameter_type = 'cost' and parameter_name='metro_station'and
+	parameter_subname='ceiling cost')
+
+select c.metro_line_id,c.metro_line_name,c.station_id,c.station_name,
+	c.built_date,c.floors,
+	(st_area(c.location)*c.floors*d.parameter_value)+
+	(st_perimeter(c.location)*(st_zmax(c.location)-st_zmin(c.location))*e.parameter_value)+
+	(st_area(c.location)*c.floors*f.parameter_value) as station_refitting_cost
+	from station_line c, floor_cost d,wall_cost e,ceiling_cost f
+);
+
+
+--Consider the cost of card machine replacement renovations
+drop view if exists uceswx0.refitting_machine_cost;
+create view uceswx0.refitting_machine_cost as(
+with
+-- join 5 Card and replacement costs
+machine_change as 
+	(select station_id,sum(continue_use_fix_cost_remain_year) as continue_use_fix_cost_machine_remain_year,
+	sum(update_fix_cost_remain_year) as update_fix_cost_machine_remain_year,
+	sum(continue_use_enter_income_remain_year) as continue_use_enter_income_machine_remain_year,
+	sum(update_enter_income_remain_year) as update_enter_income_machine_remain_year,
+	sum(profit_reserve) as profit_reserve,
+	sum(profit_update) as profit_update
+	from uceswx0.change_card_machine
+	group by station_id),
+station_machine as 
+	(select a.*,b.continue_use_fix_cost_machine_remain_year,
+	b.update_fix_cost_machine_remain_year,
+	b.continue_use_enter_income_machine_remain_year,
+	b.update_enter_income_machine_remain_year,
+	b.profit_reserve,b.profit_update
+	from uceswx0.refitting_cost a left join machine_change b
+	on a.station_id=b.station_id)
+	
+select *, round(station_refitting_cost+profit_reserve) 
+	as refitting_machine_reserve_cost, 
+	round(station_refitting_cost+profit_update) as refitting_machine_update_cost
+	from station_machine
+);
+
+
+
+
+-- =============================================
+---7 Considering the daily maintenance of the metro lines in operation, we need to count how many stations on each metro line are in good operating condition >2.5 and how much it costs to refurbish stations that are not in good condition? What is the cost of renovating to consider replacing card machines or keeping them until their useful life to replace them?
+
+drop view if exists uceswx0.platform_condition;
+create view uceswx0.platform_condition as(
+with
+--latest report
+latest_report as 
+	(select distinct on (station_id) * from uceswx0.station_condition
+	order by station_id,report_date desc),
+--weight
+platform_wei as 
+	(select parameter_name,parameter_subname,parameter_value
+	from uceswx0.latest_parameters 
+	where parameter_name='station_condition' and 
+		parameter_type='weight'),
+para_sum as 
+	(select sum(parameter_value) as parameter_sum 
+	from platform_wei),
+platform_weight_normalization as 
+	(select a.*, (a.parameter_value/b.parameter_sum) as platform_weight
+	from platform_wei a, para_sum b),
+--condition_weight
+condition_weight as 
+	(select station_id,
+	light_condition*
+		(select platform_weight from platform_weight_normalization 
+		where parameter_subname='light_condition') as light_condition,
+	track_condition*
+		(select platform_weight from platform_weight_normalization 
+		where parameter_subname='track_condition') as track_condition,
+	platform_condition*
+		(select platform_weight from platform_weight_normalization 
+		where parameter_subname='platform_condition') as platform_condition,
+	display_screen_condition*
+		(select platform_weight from platform_weight_normalization 
+		where parameter_subname='display_screen_condition') as display_screen_condition
+	from latest_report ),
+--station_condition
+station_condition_sum as
+	(select station_id, (light_condition+track_condition+
+		platform_condition+display_screen_condition) as station_condition
+		from condition_weight)
+
+select c.station_id,c.station_name,c.built_date,c.metro_line_id,
+round(d.station_condition,2)as station_condition from uceswx0.metro_stations c
+left join station_condition_sum d on c.station_id= d.station_id
+);
+
+
+
+
+-- =============================================
+--2. Considering the need for energy saving and emission reduction, it is expected that all the display screens and light bulbs in metro line1 will be replaced with led ones, how much energy and how much money will be saved in a year by doing so?
+
+drop view if exists uceswx0.line_energy;
+create view uceswx0.line_energy as(
+with 
+--screen
+station_screen_number as 
+	(select *,(select parameter_value from uceswx0.latest_parameters
+		where parameter_type='install' and parameter_name='metro_station'
+		and parameter_subname='display screen') as screen_number 
+	from uceswx0.metro_stations ),
+screen_save as 
+	(select parameter_value from uceswx0.latest_parameters
+		where parameter_type='energy saving' and parameter_name='metro_station'
+		and parameter_subname='screen'),
+station_screen_save as 
+	(select a.*, (a.screen_number*b.parameter_value*365) as screen_energy_saving_per_year
+	from station_screen_number a, screen_save b),
+--light
+station_area_number as 
+	(select *,(st_area(location)*floors) as station_area 
+	from uceswx0.metro_stations),
+light_value as 
+	(select parameter_value from uceswx0.latest_parameters
+		where parameter_type='install' and parameter_name='metro_station'
+		and parameter_subname='light'),
+station_light_number as 
+	(select c.*,(c.station_area*d.parameter_value)as light_number
+	from station_area_number c, light_value d),
+light_save as 
+	(select parameter_value from uceswx0.latest_parameters
+		where parameter_type='energy saving' and parameter_name='metro_station'
+		and parameter_subname='light'),
+station_light_save as 
+	(select e.*,(e.light_number* f.parameter_value*365)as light_energy_saving_per_year
+	from station_light_number e, light_save f),
+--COST
+station_join_light_screen as 
+	(select g.station_id,g.metro_line_id,g.station_name,g.location,
+	g.screen_number,g.screen_energy_saving_per_year,
+	h.light_number,h.light_energy_saving_per_year
+	from station_screen_save g left join station_light_save h
+	on st_3dintersects(g.location,h.location)),
+save_cost as 
+	(select parameter_value from uceswx0.latest_parameters
+		where parameter_type='energy cost' and parameter_name='metro_station'
+		and parameter_subname='energy cost'),
+station_cost as 
+	(select i.*, 
+	(i.screen_energy_saving_per_year*j.parameter_value)
+		as screen_save_cost_per_year,
+	(i.light_energy_saving_per_year*j.parameter_value)
+		as light_save_cost_per_year
+	from station_join_light_screen i, save_cost j),
+station_total_cost as 
+	(select *,
+	(screen_energy_saving_per_year+light_energy_saving_per_year)
+		as saving_energy_per_year,
+	(screen_save_cost_per_year+light_save_cost_per_year)
+		as saving_cost_per_year
+	from station_cost),
+--line
+station_sum as 
+	(select metro_line_id,sum(screen_number) as screen_number,
+	sum(light_number) as light_number,
+	sum(saving_energy_per_year) as saving_energy_per_year,
+	sum(saving_cost_per_year) as saving_cost_per_year
+	from station_total_cost group by metro_line_id)
+
+select k.metro_line_name,l.*
+from uceswx0.metro_line k left join  station_sum l
+on k.metro_line_id=l.metro_line_id);
+
+
+

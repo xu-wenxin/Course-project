@@ -1,0 +1,8 @@
+--5.考虑到节能减排的需求，预计将line1里的所有屏幕和灯泡换成led的一年将节约多少能源节约多少钱？
+--没站3个screen，没平方米多少灯，led 能源，普通灯能源，screen普通led能源，每kwh花费
+
+select * from uceswx0.line_energy;
+
+
+
+

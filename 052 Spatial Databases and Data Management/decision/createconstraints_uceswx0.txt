@@ -1,0 +1,174 @@
+--add pk
+alter table  uceswx0.metro_line
+	add constraint metro_line_pk
+	primary key(metro_line_id);
+	
+alter table  uceswx0.metro_stations
+	add constraint metro_station_pk
+	primary key(station_id);
+	
+alter table  uceswx0.card_entry_machines
+	add constraint card_entry_machines_pk
+	primary key(machine_id);
+
+alter table  uceswx0.station_condition
+	add constraint station_condition_pk
+	primary key(station_condition_id);
+
+alter table  uceswx0.station_fix
+	add constraint station_fix_pk
+	primary key(station_fix_id);
+
+alter table  uceswx0.card_entry_machines_value
+	add constraint card_entry_machines_value_pk
+	primary key (machine_value_id);
+	
+alter table  uceswx0.card_machine_fix
+	add constraint card_machine_fix_pk
+	primary key (machine_fix_id);
+
+alter table  uceswx0.users
+	add constraint users_pk
+	primary key (user_id);
+
+alter table  uceswx0.asset_condition
+	add constraint asset_condition_pk
+	primary key (condition_id);
+
+alter table  uceswx0.parameters
+	add constraint parameters_pk
+	primary key (parameter_id);
+
+
+--fk
+--metro_station_fk
+alter table uceswx0.metro_stations
+	add constraint metro_station_line_fk
+	foreign key (metro_line_id) 
+	references uceswx0.metro_line(metro_line_id);
+
+--card_entry_machines_fk
+alter table uceswx0.card_entry_machines
+	add constraint machines_station_fk
+	foreign key (station_id) 
+	references uceswx0.metro_stations(station_id);
+
+--station_condition_fk
+alter table uceswx0.station_condition
+	add constraint station_condition_id_fk
+	foreign key (station_id) 
+	references uceswx0.metro_stations(station_id);
+
+alter table uceswx0.station_condition
+	add constraint station_condition_user_fk
+	foreign key (user_id) 
+	references uceswx0.users(user_id);
+
+alter table uceswx0.station_condition
+	add constraint light_condition_fk
+	foreign key (light_condition) 
+	references uceswx0.asset_condition(condition_id);
+
+alter table uceswx0.station_condition
+	add constraint track_condition_fk
+	foreign key (track_condition) 
+	references uceswx0.asset_condition(condition_id);
+
+alter table uceswx0.station_condition
+	add constraint platform_condition_fk
+	foreign key (platform_condition) 
+	references uceswx0.asset_condition(condition_id);
+
+alter table uceswx0.station_condition
+	add constraint display_screen_condition_fk
+	foreign key (display_screen_condition) 
+	references uceswx0.asset_condition(condition_id);
+
+--station_fix_fk
+alter table uceswx0.station_fix
+	add constraint station_fix_id_fk
+	foreign key (station_id) 
+	references uceswx0.metro_stations(station_id);
+
+alter table uceswx0.station_fix
+	add constraint station_fix_user_fk
+	foreign key (user_id) 
+	references uceswx0.users(user_id);
+
+--card_entry_machines_value_fk
+alter table uceswx0.card_entry_machines_value
+	add constraint machines_value_id_fk
+	foreign key (machine_id) 
+	references uceswx0.card_entry_machines(machine_id);
+
+--card_machine_fix_fk
+alter table uceswx0.card_machine_fix
+	add constraint machines_fix_id_fk
+	foreign key (machine_id) 
+	references uceswx0.card_entry_machines(machine_id);
+
+alter table uceswx0.card_machine_fix
+	add constraint machines_fix_user_fk
+	foreign key (user_id) 
+	references uceswx0.users(user_id);
+
+
+--unique
+alter table uceswx0.metro_line
+	add constraint metro_line_unique
+	unique(metro_line_name);
+
+alter table uceswx0.metro_stations
+	add constraint metro_station_unique
+	unique(station_name);
+
+alter table uceswx0.card_entry_machines
+	add constraint card_entry_machines_unique
+	unique(location);
+
+alter table uceswx0.station_condition
+	add constraint station_condition_unique
+	unique(station_id,report_date,user_id);
+
+alter table uceswx0.station_fix
+	add constraint station_fix_unique
+	unique(station_id,station_fix_date,user_id);
+
+alter table uceswx0.card_entry_machines_value
+	add constraint machines_value_unique
+	unique(machine_value_id,machine_id,record_time,record_date);
+
+alter table uceswx0.card_machine_fix
+	add constraint card_machine_fix_unique
+	unique(machine_id,machine_fix_date,user_id);
+
+alter table uceswx0.users
+	add constraint users_unique
+	unique(user_name);
+
+alter table uceswx0.asset_condition
+	add constraint asset_condition_unique
+	unique(condition_description);
+
+alter table uceswx0.parameters
+	add constraint parameters_unique 
+	unique(parameter_type, parameter_name, parameter_subname, date_created);
+
+
+--check
+alter table uceswx0.card_entry_machines
+	add constraint machine_function_check
+	check(machine_function in('contactless','mobel phone','face-scanning'));
+
+alter table uceswx0.card_entry_machines
+	add constraint machine_weight
+	check(machine_weight in(90,120));
+
+alter table uceswx0.station_fix
+	add constraint station_fix_place_check
+	check(fix_place in('light','track','platform','display screen'));
+
+alter table uceswx0.card_entry_machines_value
+	add constraint enter_outer_check
+	check(enter_outer in('enter','outer'));
+

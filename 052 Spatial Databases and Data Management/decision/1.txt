@@ -1,0 +1,14 @@
+--1.由于line1从建成已有10年时间，有很多装修设施存在老化现象，如果我们想重新装修line1里的每个地铁站成同一风格，需要多少钱？
+
+select * from uceswx0.refitting_machine_cost;
+
+
+
+
+
+
+
+
+
+
+

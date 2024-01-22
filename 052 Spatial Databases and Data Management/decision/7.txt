@@ -1,0 +1,33 @@
+--7.我们想知道，目前的水平，一趟列车运行之间每个站台容纳了多少人，已有站台的面积是否让人们干到舒适？需不需要扩建站台？由于输入数据限制，以2021-12-3 20:00为例进行运算。
+with
+--每一站间隔
+--time
+machine_value as 
+	(select* from uceswx0.card_entry_machines_value 
+	where record_date='2021-12-3' and enter_outer='enter'),
+machine_join as 
+	(select b.*, a.location,a.station_id from uceswx0.card_entry_machines a 
+	inner join machine_value b on a.machine_id=b.machine_id),
+line_machine_value as 
+	(select c.departure_interval,d.*
+	from machine_join d left join uceswx0.metro_line c
+	on st_intersects(c.location,d.location)),
+machine_value_5min as 
+	(select *
+	from line_machine_value  where 
+	record_time between 22 and (22+(departure_interval/60))),
+station_count as 
+	(select count(*) as population ,station_id from machine_value_5min
+	group by station_id),
+station_join_population as 
+	(select e.*,(st_area(e.location)*(select parameter_value 
+		from uceswx0.latest_parameters where parameter_type='confort'
+		and parameter_subname='population')) 
+			as station_comfortable_population,
+	f.population from uceswx0.metro_station e 
+	left join station_count f on e.station_id=f.station_id)
+	
+select station_id,station_name,population as people_in_station,
+	station_comfortable_population,
+	population<station_comfortable_population as comfortable
+	from station_join_population;

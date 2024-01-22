@@ -1,0 +1,56 @@
+--4.考虑到轮椅、婴儿车和行李等物品进入地铁站，我们需要每个地铁站至少有一个进、出卡机是无障碍的（weight=120cm），现在的情况是怎么样的？如果符合要求需要多少额外宽度多少钱？全部增加为120cm呢?
+--地铁站 machine  count 120
+with 
+station_machien_count as
+	(select count(*)as machine_120_count,station_id 
+	from uceswx0.card_entry_machines 
+	where machine_weight>=120
+	group by station_id),
+station_machine as 
+	(select a.*,b.machine_120_count from uceswx0.metro_station a
+	left join station_machien_count b on a.station_id=b.station_id),
+--station machinecount =0 max weighdth update 
+--station with 2 
+station_with2 as 
+	(select * from station_machine where machine_120_count>=2),
+station_below2 as 
+	(select * from uceswx0.metro_station where station_id in 
+		(select station_id from uceswx0.metro_station
+		except select station_id from station_with2)),
+station_width as 
+	(select station_id,((120-90)*2)as width_need from station_below2),
+width_cost as 
+	(select parameter_value from uceswx0.latest_parameters
+	where parameter_name='card_entry_machines' and 
+	parameter_subname='increase width'),
+station_width_join as 
+	(select c.*,d.width_need
+	from uceswx0.metro_station c left join station_width d on 
+	c.station_id=d.station_id),
+station_2 as 
+	(select e.*,(e.width_need*f.parameter_value)as width_cost 
+	from station_width_join e,width_cost f
+	order by station_id),
+--upgrade_all
+station_count as 
+	(select count(*)as number_upgrade ,station_id from uceswx0.card_entry_machines where machine_weight<120
+	group by station_id order by station_id),
+station_count_join as 
+	(select g.*, h.number_upgrade, 
+	(h.number_upgrade*(120-90))as upgrade_all_width
+	from uceswx0.metro_station g left join station_count h on g.station_id=h.station_id),
+station_count_cost as
+	(select i.*, (i.upgrade_all_width*j.parameter_value)as upgrade_all_cost
+	from station_count_join i, width_cost j)
+	
+--join
+select k.station_id,k.station_name,k.width_need as upgrade_2_width,
+k.width_cost as upgrade_2_cost,l.number_upgrade as number_upgrade_all
+,l.upgrade_all_width,l.upgrade_all_cost
+from station_2  k left join station_count_cost l
+on k.station_id=l.station_id;
+
+
+
+
+
