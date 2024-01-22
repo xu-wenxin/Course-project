@@ -1,0 +1,23 @@
+{
+  "name": "cege0043-apps-21-22-xu-wenxin",
+  "version": "1.0.0",
+  "description": "Basic starter code for UCL module CEGE0043 app development - includes a basic HTTP server and one end point",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://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@github.com/ucl-geospatial-21-22/cege0043-apps-21-22-xu-wenxin.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ucl-geospatial-21-22/cege0043-apps-21-22-xu-wenxin/issues"
+  },
+  "homepage": "https://github.com/ucl-geospatial-21-22/cege0043-apps-21-22-xu-wenxin#readme",
+  "dependencies": {
+    "express": "^4.17.3",
+    "pg": "^8.7.3"
+  }
+}
